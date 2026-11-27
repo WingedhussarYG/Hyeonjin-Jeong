@@ -54,12 +54,12 @@
     {
       "id": "galactic-realms",
       "title": "은하의 시대",
-      "version": "2.5.1",
+      "version": "2.5.2",
       "kind": "static",
       "entry": "index.html",
-      "url": "/api/launcher/modules/galactic-realms/2.5.1",
-      "sha256": "f984366ba4168e7d6a21b82de09b1afb7bcd8271da556ea8570ca50b38372b77",
-      "bytes": 30140116
+      "url": "/api/launcher/modules/galactic-realms/2.5.2",
+      "sha256": "3447a04440dab846bba853d2e4aacd663821a711d7ec88c524bcb1bf2751ec1b",
+      "bytes": 29558905
     },
     {
       "id": "gridiron-manager",

@@ -1,14 +1,14 @@
 {
-  "tag": "lucid-games-2026.11.27-i18n1",
+  "tag": "lucid-games-2026.11.27-galactic252",
   "launcherCommit": "df594bc7c0cfc718ea3aff341ec0e2405b50bce9",
   "mobileCommit": "fbb256a62fb63bbf58d794682287b164790c8ba8",
   "wikiCommit": "24558870b3c6e2806f29d38a2b5bfa03d6fcf62b",
   "source": {
     "name": "Lucid-Games-Launcher-Source.zip",
-    "bytes": 1771452111,
-    "sha256": "c7151e933cb8ce179a8b140bb0af3d4ecc01ed4fd73707babe4574639c97a548"
+    "bytes": 1770654273,
+    "sha256": "b83ddabfbc37b76ee4c2874ea2f468e105e5e7279491df91f5972bee52429d3d"
   },
-  "bundleSha256": "0aa44f58a0dd58425326018208adbf4aa7f772aa9cfc2a69057baa978cf089a4",
+  "bundleSha256": "1346495445487322866e600ed18479eba4fb148875149b7c39488f0775d05690",
   "desktop": [
     {
       "platform": "linux-x64",
@@ -54,5 +54,20 @@
   "mobilePlatformCommits": {
     "android": "2d9f52cc5c66174a221be28fc2eac752b82afbdf",
     "ios": "fbb256a62fb63bbf58d794682287b164790c8ba8"
+  },
+  "bundleBytes": 1069029318,
+  "verifiedGitHubBuild": {
+    "gameVersion": "2.5.2",
+    "baseTag": "lucid-games-2026.11.27-i18n1",
+    "collection": {
+      "id": 45998175305,
+      "sha": "287105416f8dbe509311cb9d2fe0780dbe1b4a0c",
+      "artifact": "lucid-collection-galactic-2.5.2"
+    },
+    "game": {
+      "id": 45997485532,
+      "sha": "bc77e63ff3e0e05ffeeef9e9bb6f20ebc5c1b66e",
+      "artifact": "galactic-2.5.2-verified-release"
+    }
   }
 }

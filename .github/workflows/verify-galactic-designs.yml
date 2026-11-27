@@ -1,0 +1,64 @@
+name: Verify Galactic Realms unit designs
+on:
+  workflow_dispatch:
+  push:
+    branches: [update/galactic-2.5.2-unit-designs]
+    paths:
+      - ".github/workflows/verify-galactic-designs.yml"
+      - "lucid-games/updates/galactic_sprite_check.py"
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: galactic-realms-252-visual-tests
+  cancel-in-progress: true
+
+jobs:
+  sprites:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for the original verified release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/45997485532" --jq '.status + "/" + (.conclusion // "")')
+            if [ "$status" = completed/success ]; then exit 0; fi
+            if [[ "$status" = completed/* ]]; then echo "$status"; exit 1; fi
+            sleep 15
+          done
+          exit 1
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 45997485532
+          github-token: ${{ github.token }}
+          name: galactic-2.5.2-verified-release
+          path: verified
+      - name: Retrieve the unchanged 2.5.1 source collection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download lucid-games-2026.11.27-i18n1 \
+            --pattern 'Lucid-Games-Launcher-Source.zip' --dir "$RUNNER_TEMP"
+      - name: Prepare a software X display for the game renderer
+        run: |
+          if ! command -v xvfb-run >/dev/null || ! pkg-config --exists x11 xrandr xcursor xi xinerama xxf86vm gl alsa; then
+            sudo apt-get -qq update
+            sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl-dev libx11-dev \
+              libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxxf86vm-dev libasound2-dev
+          fi
+      - name: Compare shipped sprites, protected units, archived geometry, and IFV modes
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" python3 -u lucid-games/updates/galactic_sprite_check.py \
+            --collection "$RUNNER_TEMP/Lucid-Games-Launcher-Source.zip" --release verified \
+            --working "$RUNNER_TEMP/galactic-sprite-check" --out evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: galactic-2.5.2-design-comparison
+          path: evidence
+          if-no-files-found: warn
+          retention-days: 30
