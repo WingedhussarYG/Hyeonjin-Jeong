@@ -3,7 +3,25 @@
     "df594bc7c0cfc718ea3aff341ec0e2405b50bce9",
     "unpublished"
   ],
-  "launcherCommit": "cb9e973c5d84c46a6f52b3eecf52e1ba325fce65",
+  "launcherCommit": "bacdd55599b1e334da3a0b081e62b2d1c893565a",
+  "previousLiveLauncherCommit": "cb9e973c5d84c46a6f52b3eecf52e1ba325fce65",
+  "gameSite": {
+    "slug": "galactic-realms",
+    "baseCommit": "01f44cfbb35646f21a6877669796cc55b28a8716",
+    "commit": "5aef33dc738c5ad03e0721f5838091fbc53f0230",
+    "files": [
+      {
+        "path": ".gitignore",
+        "baseSha256": "ca6971347c1dd0633c5ad5a4bc1a562ddd375cea9c081eef6c86fb878e4c88a7",
+        "sha256": "d7e043d109f7a728e3dd22bb447e29feb7fda00a15bb5a22be418d0db3e0cf3a"
+      },
+      {
+        "path": "README.md",
+        "baseSha256": "40e09690ef4275a0e869f92c019abd4fc6b567285e85cb9457a0dc540a3cb5dc",
+        "sha256": "53f4bb956be9bfad5358025bb64e3cfeb872de57483fa76b036df3cb0cb3d692"
+      }
+    ]
+  },
   "launcherFiles": [
     {
       "path": "deployment/RESTORE.ko.md",
