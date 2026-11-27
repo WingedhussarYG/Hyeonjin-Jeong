@@ -34,6 +34,16 @@ jobs:
           if [ "$tag" = lucid-games-2026.11.27-galactic252 ]; then
             title="Lucid Games collection · Galactic Realms 2.5.2"
             notes=lucid-games/updates/galactic-2.5.2.md
+            for i in $(seq 1 120); do
+              state=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/45999852580" --jq '(.head_sha + " " + .status + " " + (.conclusion // "pending"))')
+              case "$state" in
+                "b03680178b0e6bfe26fe91dcae81cf1a097a9d5a completed success") break ;;
+                "b03680178b0e6bfe26fe91dcae81cf1a097a9d5a completed "*) echo "Visual verification failed: $state"; exit 1 ;;
+                "b03680178b0e6bfe26fe91dcae81cf1a097a9d5a "*) sleep 10 ;;
+                *) echo "Unexpected visual verification run"; exit 1 ;;
+              esac
+            done
+            [[ "$state" = *" completed success" ]]
           fi
           gh release create "$tag" --draft --target "$GITHUB_SHA" --title "$title" --notes-file "$notes" artifacts/*
           gh release edit "$tag" --draft=false
