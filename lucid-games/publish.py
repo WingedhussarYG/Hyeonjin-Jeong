@@ -6,6 +6,10 @@ root=Path(__file__).resolve().parent
 pins=json.loads((root/'release.json').read_text())
 out=Path('artifacts')
 out.mkdir()
+if 'verifiedGitHubBuild' in pins:
+    from verified_collection import publish_verified
+    publish_verified(root, out, pins, pins['verifiedGitHubBuild'])
+    raise SystemExit(0)
 def fetch(url, path, expected, module=False):
     args=['curl','--fail','--location','--silent','--show-error','--retry','4']
     if module:args+=['--header','X-Lucid-Install: 1']
