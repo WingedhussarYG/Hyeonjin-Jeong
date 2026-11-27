@@ -5,7 +5,7 @@ on:
 permissions: {}
 jobs:
   build:
-    if: github.event.before == '534ae8ad81840f438aa1f6047d1bf3b9e259c00d' && github.run_attempt == 1
+    if: github.event.before == '371b70434f30845ad9f6da30453bbaca9430b652' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -31,7 +31,7 @@ jobs:
           compression-level: 0
   release:
     needs: build
-    if: github.event.before == '534ae8ad81840f438aa1f6047d1bf3b9e259c00d' && github.run_attempt == 1
+    if: github.event.before == '371b70434f30845ad9f6da30453bbaca9430b652' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -47,5 +47,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: WingedhussarYG/Hyeonjin-Jeong
         run: |
-          gh release create lucid-studio-1.1.0 --target "$GITHUB_SHA" --title "Lucid Studio 1.1.0" --notes-file release-notes.md --draft *.zip SHA256SUMS.txt web-editions.json
-          gh release edit lucid-studio-1.1.0 --draft=false
+          gh release create lucid-studio-1.1.0 --target "$GITHUB_SHA" --title "Lucid Studio 1.1.0" --notes-file release-notes.md --draft --latest=false *.zip SHA256SUMS.txt web-editions.json
+          gh release edit lucid-studio-1.1.0 --draft=false --latest=false

@@ -66,6 +66,11 @@ def main():
    for part in parts:
     with part.open('rb') as src:shutil.copyfileobj(src,joined)
   with tarfile.open(archive_path) as t:t.extractall(overlay,filter='data')
+  web_archive=work/'web-baseline.tar.xz'
+  with web_archive.open('wb') as joined:
+   for part in sorted(HERE.glob('web-baseline.tar.xz.part*')):
+    with part.open('rb') as src:shutil.copyfileobj(src,joined)
+  with tarfile.open(web_archive) as t:t.extractall(overlay,filter='data')
   engine=(desktop/'resources/office-engine/soffice.wasm').read_bytes()
   index=json.loads((HERE/'source-files.json').read_text())
   def restore(pair):
@@ -76,7 +81,7 @@ def main():
     part=row['part'];dest.write_bytes(engine[part*8388608:(part+1)*8388608])
    elif 'pack' in row:shutil.copyfile(packdir/row['pack'],dest)
    elif 'overlay' in row:shutil.copyfile(overlay/row['overlay'],dest)
-   else:download(BASE+row['url'],dest,row['hash'])
+   else:shutil.copyfile(overlay/row['hash'],dest)
    if sha(dest)!=row['hash'] and ('pack' not in row or hashlib.sha256(gzip.decompress(dest.read_bytes())).hexdigest()!=row['uncompressed_sha256']):raise ValueError('Source integrity mismatch: '+path)
    dest.chmod(row['mode'])
   with ThreadPoolExecutor(max_workers=6) as executor:list(executor.map(restore,index.items()))
