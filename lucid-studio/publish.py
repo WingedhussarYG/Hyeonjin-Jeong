@@ -21,13 +21,30 @@ def pack_zip(root,dest,folder):
  with zipfile.ZipFile(dest,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=5,allowZip64=True,strict_timestamps=False) as z:
   for f in sorted(root.rglob('*')):
    if f.is_file():z.write(f,folder+'/'+str(f.relative_to(root)))
+def portable_payload(original, work):
+    """Extract the verified 7-Zip payload from the NSIS portable wrapper."""
+    payload = work/'portable.7z'
+    with original.open('rb') as src, payload.open('wb') as out:
+        src.seek(75560)
+        remaining = 247564600
+        while remaining:
+            block = src.read(min(1024*1024, remaining))
+            if not block:
+                raise ValueError('Incomplete Windows portable payload.')
+            out.write(block)
+            remaining -= len(block)
+    with payload.open('rb') as src:
+        if hashlib.file_digest(src,'sha256').hexdigest()!='e730bc56cd2dd85c08522fb41e3e0e958a26dfe9c67ade9ac2c48910b1abb86d':
+            raise ValueError('The embedded Windows portable payload failed verification.')
+    return payload
+
 def main():
  out=Path('artifacts').resolve();out.mkdir(exist_ok=True)
  with tempfile.TemporaryDirectory() as td:
   work=Path(td);root=work/'source';root.mkdir()
   original=work/'original.exe';download(BASE+EXE,original,HASH)
   desktop=work/'runtime'
-  result=subprocess.run([shutil.which('7z') or shutil.which('7zz') or '7z','x','-y','-o'+str(desktop),str(original)],stdout=subprocess.DEVNULL)
+  result=subprocess.run([shutil.which('7z') or shutil.which('7zz') or '7z','x','-t7z','-y','-o'+str(desktop),str(portable_payload(original,work))],stdout=subprocess.DEVNULL)
   if result.returncode not in (0,1):result.check_returncode()
   app=desktop/'resources/app';native=root/'native-app';shutil.copytree(app,native)
   suite_zip=work/'suite-original.zip'
@@ -63,6 +80,7 @@ def main():
    if sha(dest)!=row['hash'] and ('pack' not in row or hashlib.sha256(gzip.decompress(dest.read_bytes())).hexdigest()!=row['uncompressed_sha256']):raise ValueError('Source integrity mismatch: '+path)
    dest.chmod(row['mode'])
   with ThreadPoolExecutor(max_workers=6) as executor:list(executor.map(restore,index.items()))
+  shutil.copy2(HERE/'package-studio-windows.py',root/'scripts/package-studio-windows.py')
   shutil.copy2(HERE/'locale.js',root/'localisation/locale.js')
   hints=[l.split('\t') for l in (HERE/'field-hints.tsv').read_text().splitlines()]
   for i,lang in enumerate(['ko','en-gb','de','fr','es','ja','zh-cn']):

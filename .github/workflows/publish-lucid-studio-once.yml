@@ -5,7 +5,7 @@ on:
 permissions: {}
 jobs:
   build:
-    if: github.event.before == '256b5fcacb800da086bffa3bde55b41c72b6a8ee' && github.run_attempt == 1
+    if: github.event.before == '534ae8ad81840f438aa1f6047d1bf3b9e259c00d' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -31,7 +31,7 @@ jobs:
           compression-level: 0
   release:
     needs: build
-    if: github.event.before == '256b5fcacb800da086bffa3bde55b41c72b6a8ee' && github.run_attempt == 1
+    if: github.event.before == '534ae8ad81840f438aa1f6047d1bf3b9e259c00d' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
