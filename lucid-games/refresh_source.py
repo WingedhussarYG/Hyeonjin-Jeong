@@ -76,17 +76,25 @@ def refresh(base: Path, output: Path, root: Path) -> None:
         del archive.NameToInfo[tail.filename]
         archive.start_dir = tail.header_offset
 
-        launcher = patch_root / "lucid-game-launcher"
-        patched = []
-        for item in manifest["launcherFiles"]:
-            source = launcher / safe(item["path"])
-            if digest(source) != item["sha256"]:
-                raise ValueError("Launcher patch digest mismatch: " + item["path"])
-            destination = "lucid-game-launcher/" + item["path"]
-            if index["files"].get(destination, [None])[0] != item["baseSha256"]:
-                raise ValueError("The base launcher file differs: " + item["path"])
-            add_file(archive, index, destination, source)
-            patched.append(destination)
+        overlays = {"lucid-game-launcher": manifest["launcherFiles"]}
+        game = manifest.get("gameSite")
+        if game:
+            slug = safe(game["slug"])
+            game_record = index["games"][slug]
+            if game_record.get("basedOn") != game["baseCommit"] or game_record.get("siteCommit") != "unpublished":
+                raise ValueError("The archived game site does not match the release being promoted")
+            overlays["games/" + slug] = game["files"]
+            if index["files"]["lucid-game-launcher/src/modules.json"][0] != digest(root / "catalog.json"):
+                raise ValueError("The archived and published launcher catalogs differ")
+            game_record["siteCommit"] = game["commit"]
+            index["hubBasedOn"] = manifest["previousLiveLauncherCommit"]
+        for prefix, changes in overlays.items():
+            for item in changes:
+                destination = prefix + "/" + safe(item["path"])
+                source = patch_root / destination
+                if digest(source) != item["sha256"] or index["files"].get(destination, [None])[0] != item["baseSha256"]:
+                    raise ValueError("Source patch digest mismatch: " + destination)
+                add_file(archive, index, destination, source)
 
         public_files = [
             "README.md",
@@ -95,6 +103,8 @@ def refresh(base: Path, output: Path, root: Path) -> None:
             "verified_collection.py",
             "refresh_source.py",
         ]
+        if game:
+            public_files.append("updates/galactic-2.5.2.md")
         for name in public_files:
             add_file(archive, index, "public-distribution/lucid-games/" + name, root / name)
         add_file(
