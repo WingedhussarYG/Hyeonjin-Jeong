@@ -1,0 +1,52 @@
+name: Retire old distributions
+on:
+  push:
+    branches: [distribution-cleanup-once]
+    paths: ['.github/workflows/retire-old-distributions.yml']
+permissions:
+  contents: write
+  actions: write
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove confirmed retired releases, refs and build records
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import json, os, subprocess, urllib.request, urllib.error
+          repo = os.environ['GITHUB_REPOSITORY']
+          assert repo == 'WingedhussarYG/Hyeonjin-Jeong'
+          def gh(path, delete=False):
+              args = ['gh','api','repos/'+repo+'/'+path]
+              if delete:
+                  subprocess.run(args+['-X','DELETE','--silent'],check=True)
+              else:
+                  return json.loads(subprocess.check_output(args))
+          latest = gh('releases/460625135')
+          assert latest['draft'] and len(latest['assets']) == 10
+          studio = gh('releases/460565950')
+          assert not studio['draft'] and len(studio['assets']) == 14
+          for rid, tag in [[460605612,"lucid-games-2026.11.27-v14"],[460535272,"lucid-games-2026.11.27-i18n1"],[460589555,"lucid-games-2026.11.27-galactic252"]]:
+              row = gh('releases/'+str(rid))
+              assert row['draft'] and row['tag_name'] == tag and tag.startswith('lucid-games-')
+              gh('releases/'+str(rid),True)
+          for ref, sha in [["tags/lucid-games-2026.11.27-galactic252","b804b8739c9c374ba5d394eca38a24e23451b629"],["tags/lucid-games-2026.11.27-i18n1","ac60389bc79ddb8aafac102361984074c3b0f4f8"],["tags/lucid-games-2026.11.27-v14","a0609fb7c4ecc11eca71d576cc17f837d6bd30dd"],["tags/lucid-games-2026.11.27-v15","cffbb3be54282ffd9b24706799dc12b87d064bac"],["heads/maintenance/unpublish-game-releases-20261127","89a18c09d55b39ef5e63d59107e0a833c31a9200"],["heads/restrict-lucid-game-distribution","a4a3e205bdbda238d46623da03a1d0db0226be6f"],["heads/update/galactic-2.5.2-unit-designs","0d22a2ae1624e1dd8020321565ad3e399d9a1758"],["heads/update/galactic-252-live-release","afd28f21f6e72463ad853c3af42b7b30fd8758df"]]:
+              assert gh('git/ref/'+ref)['object']['sha'] == sha
+              gh('git/refs/'+ref,True)
+          for rid, path in [[46010686035,".github/workflows/publish-lucid-games.yml"],[46005628721,".github/workflows/publish-lucid-games.yml"],[46004869993,".github/workflows/verify-held-collection.yml"],[46004677027,".github/workflows/verify-held-collection.yml"],[46004518257,".github/workflows/hold-game-releases.yml"],[46002689323,".github/workflows/publish-lucid-games.yml"],[46000111936,".github/workflows/publish-lucid-games.yml"],[45999852580,".github/workflows/verify-galactic-designs.yml"],[45999399557,".github/workflows/verify-galactic-designs.yml"],[45998175305,".github/workflows/assemble-galactic-2.5.2.yml"],[45997485532,".github/workflows/build-galactic-2.5.2.yml"],[45992913570,".github/workflows/publish-lucid-games.yml"]]:
+              item = gh('actions/runs/'+str(rid))
+              assert item['path'] == path and item['status'] == 'completed'
+              gh('actions/runs/'+str(rid),True)
+          def anon(url):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,method='HEAD'),timeout=20) as res:
+                      return res.status
+              except urllib.error.HTTPError as err:
+                  return err.code
+          for suffix in ['releases/tag/'+latest['tag_name'], 'releases/download/'+latest['tag_name']+'/Lucid-Games-Complete.zip', 'releases/download/'+latest['tag_name']+'/Lucid-Games-Launcher-Source.zip']:
+              status = anon('https://github.com/'+repo+'/'+suffix)
+              print(suffix, status)
+              assert status == 404
+          print('Public studio release', anon(studio['html_url']))
