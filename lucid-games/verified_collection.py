@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -50,7 +49,7 @@ def publish_verified(root, output, pins, candidate):
     if len(catalog["modules"]) != 11 or set(platforms) != {p["platform"] for p in pins["desktop"]}:
         raise ValueError("Incomplete release catalog")
     output.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory() as temp:
+    with tempfile.TemporaryDirectory(dir=output.parent) as temp:
         sandbox = Path(temp)
         packed = sandbox / "integrated"
         standalone = sandbox / "game"
