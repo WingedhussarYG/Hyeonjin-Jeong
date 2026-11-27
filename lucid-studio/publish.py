@@ -18,7 +18,7 @@ def pack_locale(directory):
    if f.is_file() and f.suffix in ('.mo','.xcd'):files['/instdir/'+target+'/'+f.relative_to(directory/rel).as_posix()]=base64.b64encode(f.read_bytes()).decode()
  return gzip.compress(json.dumps(files,sort_keys=True,separators=(',',':')).encode(),mtime=0)
 def pack_zip(root,dest,folder):
- with zipfile.ZipFile(dest,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=5,allowZip64=True) as z:
+ with zipfile.ZipFile(dest,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=5,allowZip64=True,strict_timestamps=False) as z:
   for f in sorted(root.rglob('*')):
    if f.is_file():z.write(f,folder+'/'+str(f.relative_to(root)))
 def main():
@@ -27,7 +27,7 @@ def main():
   work=Path(td);root=work/'source';root.mkdir()
   original=work/'original.exe';download(BASE+EXE,original,HASH)
   desktop=work/'runtime'
-  result=subprocess.run(['7z','x','-y','-o'+str(desktop),str(original)],stdout=subprocess.DEVNULL)
+  result=subprocess.run([shutil.which('7z') or shutil.which('7zz') or '7z','x','-y','-o'+str(desktop),str(original)],stdout=subprocess.DEVNULL)
   if result.returncode not in (0,1):result.check_returncode()
   app=desktop/'resources/app';native=root/'native-app';shutil.copytree(app,native)
   suite_zip=work/'suite-original.zip'

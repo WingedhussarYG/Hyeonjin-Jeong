@@ -5,7 +5,7 @@ on:
 permissions: {}
 jobs:
   build:
-    if: github.event.before == 'ac60389bc79ddb8aafac102361984074c3b0f4f8' && github.run_attempt == 1
+    if: github.event.before == '256b5fcacb800da086bffa3bde55b41c72b6a8ee' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -15,7 +15,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build on the release runner
-        run: python3.12 lucid-studio/publish.py
+        run: python3 lucid-studio/publish.py
       - name: Verify all twelve ZIPs
         run: |
           cd artifacts
@@ -31,7 +31,7 @@ jobs:
           compression-level: 0
   release:
     needs: build
-    if: github.event.before == 'ac60389bc79ddb8aafac102361984074c3b0f4f8' && github.run_attempt == 1
+    if: github.event.before == '256b5fcacb800da086bffa3bde55b41c72b6a8ee' && github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
