@@ -5,6 +5,7 @@ on:
     paths: ['lucid-games/release.json']
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: lucid-game-collection
   cancel-in-progress: false
@@ -17,7 +18,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python3 lucid-games/publish.py
+      - name: Verify the release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 lucid-games/publish.py
       - name: Publish verified archives
         env:
           GH_TOKEN: ${{ github.token }}
