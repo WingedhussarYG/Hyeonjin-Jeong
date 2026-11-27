@@ -67,11 +67,11 @@ def get_previous(source_archive, baseline, old_native):
         notes = []
         for name, (blob, _mode) in sorted(index.items()):
             lower = name.lower()
-            if not ("desktop" in lower or lower.startswith("launcher/")):
+            if not (lower.startswith("launcher-desktop/") or lower.startswith("launcher/")):
                 continue
             if name.startswith(("engines/", "games/", "modules/")) or any(x in lower for x in ("node_modules/", "vendor/", "offline/")):
                 continue
-            if Path(lower).suffix not in (".go", ".js", ".mjs", ".ts", ".cpp", ".rs", ".cs", ".py"):
+            if Path(lower).suffix not in (".go", ".js", ".cjs", ".mjs", ".ts", ".tsx", ".cpp", ".rs", ".cs", ".py"):
                 continue
             info = z.getinfo("objects/" + blob)
             if info.file_size > 950_000:
@@ -79,13 +79,15 @@ def get_previous(source_archive, baseline, old_native):
             lines = z.read(info).decode(errors="replace").splitlines()
             if not any("catalog" in line.lower() for line in lines):
                 continue
+            if lower.startswith("launcher-desktop/"):
+                notes.append("Desktop source with catalog references: " + name)
             matches = [i for i, line in enumerate(lines) if re.search(
                 r"catalog.{0,100}(http|embedded|bundled|online|content|local|fetch|cache)|"
                 r"(http|embedded|bundled|online|local|content|fetch|cache).{0,100}catalog|"
                 r"(installed|module).{0,50}version|version.{0,40}(installed|module)", line, re.I)]
             for i in matches[:8]:
                 notes.append(f"{name}:{i + 1} {lines[i].strip()[:360]}")
-            if len(notes) >= 45:
+            if len(notes) >= 72:
                 break
         (baseline.parent / "desktop-catalog-lines.txt").write_text("\n".join(notes))
         print("Desktop launcher module selection:\n" + "\n".join(notes), flush=True)
@@ -110,9 +112,41 @@ def get_previous(source_archive, baseline, old_native):
                         shutil.copyfileobj(inp, out)
     if not old_native.exists():
         url = "https://galactic-realms.maxfaine.chatgpt.site/downloads/" + row["filename"]
-        subprocess.run(["curl", "-fsSL", "--retry", "2", "--max-time", "180", url,
-                        "-o", old_native], check=True)
-    assert digest(old_native) == PREVIOUS_ZIP
+        request = subprocess.run(["curl", "-fsSL", "--connect-timeout", "8", "--max-time", "30",
+                                  url, "-o", old_native])
+        if request.returncode:
+            old_native.unlink(missing_ok=True)
+    if old_native.exists():
+        assert digest(old_native) == PREVIOUS_ZIP
+
+
+def rebuild_previous_linux(baseline, assembled):
+    """Stop the archived native build immediately after its first official Linux target."""
+    tool = baseline / "packaging" / "rebuild.py"
+    entry = "def go_build(env, target, arch, path):"
+    src = tool.read_text()
+    assert src.count(entry) == 1
+    env_file = str(baseline.parent / "reference-compiler-env.json")
+    wrapper = ("def go_build(env, target, arch, path):\n"
+               "    if (target, arch) != ('linux', 'amd64'):\n"
+               "        raise RuntimeError('Unexpected first archive compiler target')\n"
+               f"    canonical_go_build(env, target, arch, Path({str(assembled)!r}))\n"
+               "    keys = {'PATH','GOROOT','GOENV','GOPATH','GOCACHE','GOMODCACHE','TMPDIR',"
+               "'CGO_ENABLED','GOTOOLCHAIN','GOPROXY','GOSUMDB','GOFLAGS','GOWORK','GOMAXPROCS',"
+               "'GOMEMLIMIT','GOGC','CC','CXX'}\n"
+               f"    Path({env_file!r}).write_text(json.dumps({{k:v for k,v in env.items() "
+               "if k in keys or k.startswith('GALACTIC_COMPILER') or k in "
+               "('GALACTIC_PAGING_DRIVER','GALACTIC_BUILD_PYTHON')}))\n"
+               "    raise SystemExit(0)\n\n"
+               "def canonical_go_build(env, target, arch, path):")
+    qa_driver = tool.with_name("qa-linux-reference.py")
+    qa_driver.write_text(src.replace(entry, wrapper))
+    # The compiled program contains unmodified game sources, flags and toolchain.
+    subprocess.run([baseline / "offline/python/bin/python3", "-I", "-B", qa_driver, "native"],
+                   cwd=baseline, check=True, timeout=850)
+    expected = "38435e3cfec8bb5265a85ec371edbf87ecc8da5cdaee9718fc472498297873cf"
+    assert digest(assembled) == expected, (digest(assembled), expected)
+    print("Rebuilt the signed-off 2.5.1 Linux executable with its original SHA-256:", expected, flush=True)
 
 
 def check_sources(baseline, source_archive):
@@ -208,6 +242,9 @@ def source_reference(baseline, alternate_ifv, out):
                ARCHIVE_ART_OUT=str(out), ARCHIVE_ART_KEYS=",".join(KEYS),
                REALMS_NOSOUND="1", LIBGL_ALWAYS_SOFTWARE="1",
                GOCACHE=str(baseline / ".build" / "audit-gocache"))
+    canonical_env = baseline.parent / "reference-compiler-env.json"
+    if canonical_env.exists():
+        env.update(json.loads(canonical_env.read_text()))
     native = driver["native_environment"](env)
     go = Path(native["GOROOT"]) / "bin" / "go"
     test = [go, "test", "-buildvcs=false", "-trimpath", "-toolexec=galactic-go-tool",
@@ -235,7 +272,11 @@ def main():
     alternate = check_sources(baseline, new_source)
     results = {}
     for label, archive in (("2.5.1",old_zip),("2.5.2",new_zip)):
-        exe = work/("galactic-"+label);extract_program(archive,exe)
+        exe = work / ("galactic-" + label)
+        if label == "2.5.1" and not archive.exists():
+            rebuild_previous_linux(baseline, exe)
+        else:
+            extract_program(archive, exe)
         results[label] = render(exe,out/label)
     old,new=results["2.5.1"],results["2.5.2"]
     assert all(old[k]==new[k] for k in PROTECTED), [k for k in PROTECTED if old[k]!=new[k]]
