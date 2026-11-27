@@ -1,6 +1,6 @@
 """Verify the pinned upstream release and build the offline collection."""
 from pathlib import Path
-import hashlib, json, shutil, subprocess, zipfile
+import hashlib, json, os, shutil, subprocess, zipfile
 BASE='https://lucid-game-launcher.maxfaine.chatgpt.site'
 root=Path(__file__).resolve().parent
 pins=json.loads((root/'release.json').read_text())
@@ -8,7 +8,27 @@ out=Path('artifacts')
 out.mkdir()
 if 'verifiedGitHubBuild' in pins:
     from verified_collection import publish_verified
-    publish_verified(root, out, pins, pins['verifiedGitHubBuild'])
+    build_pins=dict(pins)
+    if 'sourceBase' in pins:
+        build_pins['source']=pins['sourceBase']
+    publish_verified(root, out, build_pins, pins['verifiedGitHubBuild'])
+    if 'sourceBase' in pins:
+        source=out/pins['source']['name']
+        refreshed=out/'.refreshed-source.zip'
+        subprocess.run([
+            'python3',str(root/'refresh_source.py'),str(source),str(refreshed),'--root',str(root)
+        ],check=True)
+        with refreshed.open('rb') as stream:
+            actual=hashlib.file_digest(stream,'sha256').hexdigest()
+        if actual!=pins['source']['sha256'] or refreshed.stat().st_size!=pins['source']['bytes']:
+            raise RuntimeError('Refreshed source archive does not match the release pin')
+        os.replace(refreshed,source)
+        checks=[]
+        for path in sorted(out.iterdir()):
+            if path.is_file() and path.name!='SHA256SUMS.txt':
+                with path.open('rb') as stream:
+                    checks.append(hashlib.file_digest(stream,'sha256').hexdigest()+'  '+path.name+'\n')
+        (out/'SHA256SUMS.txt').write_text(''.join(checks))
     raise SystemExit(0)
 def fetch(url, path, expected, module=False):
     args=['curl','--fail','--location','--silent','--show-error','--retry','4']

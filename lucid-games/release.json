@@ -1,9 +1,14 @@
 {
-  "tag": "lucid-games-2026.11.27-galactic252",
-  "launcherCommit": "df594bc7c0cfc718ea3aff341ec0e2405b50bce9",
+  "tag": "lucid-games-2026.11.27-v14",
+  "launcherCommit": "cb9e973c5d84c46a6f52b3eecf52e1ba325fce65",
   "mobileCommit": "fbb256a62fb63bbf58d794682287b164790c8ba8",
   "wikiCommit": "24558870b3c6e2806f29d38a2b5bfa03d6fcf62b",
   "source": {
+    "name": "Lucid-Games-Launcher-Source.zip",
+    "bytes": 1770691073,
+    "sha256": "598b9d1e96b70e8fe08544fe30122bc5237b79f3a80dcf9a3443463eebd090d5"
+  },
+  "sourceBase": {
     "name": "Lucid-Games-Launcher-Source.zip",
     "bytes": 1770654273,
     "sha256": "b83ddabfbc37b76ee4c2874ea2f468e105e5e7279491df91f5972bee52429d3d"
