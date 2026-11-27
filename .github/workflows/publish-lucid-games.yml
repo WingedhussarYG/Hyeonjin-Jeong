@@ -29,5 +29,11 @@ jobs:
           set -euo pipefail
           tag="$(python3 -c 'import json;print(json.load(open("lucid-games/release.json"))["tag"])')"
           [[ "$tag" =~ ^lucid-games-[a-zA-Z0-9.-]+$ ]]
-          gh release create "$tag" --draft --target "$GITHUB_SHA" --title "Lucid Games collection" --notes-file lucid-games/README.md artifacts/*
+          title="Lucid Games collection"
+          notes=lucid-games/README.md
+          if [ "$tag" = lucid-games-2026.11.27-galactic252 ]; then
+            title="Lucid Games collection · Galactic Realms 2.5.2"
+            notes=lucid-games/updates/galactic-2.5.2.md
+          fi
+          gh release create "$tag" --draft --target "$GITHUB_SHA" --title "$title" --notes-file "$notes" artifacts/*
           gh release edit "$tag" --draft=false
