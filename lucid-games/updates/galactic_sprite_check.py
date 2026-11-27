@@ -63,6 +63,32 @@ def get_previous(source_archive, baseline, old_native):
     prefix = "engines/galactic-realms/"
     with zipfile.ZipFile(source_archive) as z:
         index = json.loads(z.read("source-index.json"))["files"]
+        # Show how the already-downloaded desktop launcher resolves available modules.
+        notes = []
+        for name, (blob, _mode) in sorted(index.items()):
+            lower = name.lower()
+            if not ("desktop" in lower or lower.startswith("launcher/")):
+                continue
+            if name.startswith(("engines/", "games/", "modules/")) or any(x in lower for x in ("node_modules/", "vendor/", "offline/")):
+                continue
+            if Path(lower).suffix not in (".go", ".js", ".mjs", ".ts", ".cpp", ".rs", ".cs", ".py"):
+                continue
+            info = z.getinfo("objects/" + blob)
+            if info.file_size > 950_000:
+                continue
+            lines = z.read(info).decode(errors="replace").splitlines()
+            if not any("catalog" in line.lower() for line in lines):
+                continue
+            matches = [i for i, line in enumerate(lines) if re.search(
+                r"catalog.{0,100}(http|embedded|bundled|online|content|local|fetch|cache)|"
+                r"(http|embedded|bundled|online|local|content|fetch|cache).{0,100}catalog|"
+                r"(installed|module).{0,50}version|version.{0,40}(installed|module)", line, re.I)]
+            for i in matches[:8]:
+                notes.append(f"{name}:{i + 1} {lines[i].strip()[:360]}")
+            if len(notes) >= 45:
+                break
+        (baseline.parent / "desktop-catalog-lines.txt").write_text("\n".join(notes))
+        print("Desktop launcher module selection:\n" + "\n".join(notes), flush=True)
         for name, (blob, mode) in index.items():
             if not name.startswith(prefix):
                 continue
@@ -205,6 +231,7 @@ def main():
     assert all(digest(p)==sums[p.name] for p in (new_zip,new_source))
     baseline, old_zip = work/"source-251", work/"previous-linux.zip"
     get_previous(a.collection, baseline, old_zip)
+    shutil.copyfile(work / "desktop-catalog-lines.txt", out / "desktop-catalog-lines.txt")
     alternate = check_sources(baseline, new_source)
     results = {}
     for label, archive in (("2.5.1",old_zip),("2.5.2",new_zip)):
